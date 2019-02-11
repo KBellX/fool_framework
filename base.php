@@ -9,6 +9,7 @@ defined("RUNTIME_PATH") || define("RUNTIME_PATH", ROOT_PATH . 'runtime' . DS);
 require FOOL_PATH . 'Loader.php';
 
 
+// 将运行过程可能会用到的工具初始化
 
 // 注册自动加载类
 \fool\Loader::register();
