@@ -40,11 +40,24 @@ class Query
     }
 
     /*
+     * 更新
+     * */
+    public function update(array $data = [])
+    {
+        $options = $this->parseExpress();
+        $sql = $this->builder->update($this->parseData($data), $options);
+
+        return $this->db->exec($sql);
+    }
+    /*
      * 查找单挑记录
      * */
     public function find()
     {
+        $options = $this->parseExpress();
+        $sql = $this->builder->select($options);
 
+        return $this->db->findOne($sql);
     }
 
     /*
@@ -54,8 +67,6 @@ class Query
     {
         $options = $this->parseExpress();
         $sql = $this->builder->select($options);
-
-        echo $sql;
 
         return $this->db->findAll($sql);
     }
@@ -89,12 +100,29 @@ class Query
         return $this;
     }
 
+    public function order($order) 
+    {
+        $this->options['order'] = $order;
+        return $this;
+    }
+
+    public function limit($limit) 
+    {
+        $this->options['limit'] = $limit;
+        return $this;
+    }
+
+    public function page($page) 
+    {
+        $this->options['limit'] = [($page[0] - 1) * $page[1], $page[1]];
+        return $this;
+    }
+
     public function where($condition)
     {
         // 处理闭包
         
         // 组装成以OR分隔的数组
-        $this->options['where']['']
         $this->options['where'] = $condition;
         return $this;   
     }

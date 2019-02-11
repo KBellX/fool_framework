@@ -18,6 +18,7 @@ class Builder
     ];
     protected $insertSql = 'INSERT INTO %TABLE% (%FIELD%) VALUES (%DATA%)';
     protected $selectSql = 'SELECT%DISTINCT% %FIELD% FROM %TABLE%%FORCE%%JOIN%%WHERE%%GROUP%%HAVING%%UNION%%ORDER%%LIMIT%%LOCK%%COMMENT%';
+    protected $updateSql    = 'UPDATE %TABLE% SET %SET% %JOIN% %WHERE% %ORDER%%LIMIT% %LOCK%%COMMENT%';
 
     public function insert($data, $options)
     {
@@ -35,6 +36,30 @@ class Builder
             );
 
         return $sql;
+    }
+
+    public function update($data, $options)
+    {
+        foreach ($data as $field => $value) {
+            $set[] = $field . '=' . $value;
+        }
+
+        $sql = str_replace(
+            ['%TABLE%', '%SET%', '%JOIN%', '%WHERE%', '%ORDER%', '%LIMIT%', '%LOCK%', '%COMMENT%'],
+            [
+                $this->parseTable($options['table'], $options),
+                    implode(',', $set),
+                    $this->parseJoin($options['join'], $options),
+                    $this->parseWhere($options['where'], $options),
+                    $this->parseOrder($options['order'], $options),
+                    $this->parseLimit($options['limit']),
+                    $this->parseLock($options['lock']),
+                    $this->parseComment($options['comment']),
+                ], $this->updateSql);
+
+        // echo $sql;die;
+
+        return $sql;    
     }
 
     public function select($options = [])
@@ -58,6 +83,8 @@ class Builder
                 ],
                 $this->selectSql
             );
+
+        // echo $sql;die;
 
         return $sql;
     }
@@ -145,7 +172,15 @@ class Builder
 
     protected function parseLimit($limit) 
     {
-        return '';
+        $limitStr = '';
+        if (isset($limit[0])) {
+            if (!isset($limit[1])) {
+                $limitStr = $limit[0];
+            } else {
+                $limitStr = "$limit[0],$limit[1]";
+            }
+        }
+        return !empty($limit) ? ' LIMIT ' . $limitStr : '';
     }
 
     protected function parseUnion($union) 
@@ -170,6 +205,24 @@ class Builder
 
     protected function parseOrder($order, $options) 
     {
-        return '';
+        $sort = [
+            'asc' => 'ASC',
+            'desc' => 'DESC'
+        ];
+        if (empty($order)) {
+            return '';
+        }
+
+        $orderStr = '';
+        foreach ($order as $field => $o) {
+            if (is_numeric($field)) {
+                $orderStr .= $o . ',';
+            } else {
+                $orderStr .= $field . " {$sort[$o]}";
+            }
+        }
+        $orderStr = rtrim($orderStr, ',');
+
+        return !empty($order) ? ' ORDER BY ' . $orderStr : '';
     }
 }
