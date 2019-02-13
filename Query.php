@@ -12,10 +12,14 @@ class Query
 
     protected $builder;
 
+    protected $model;
+
     protected $options;
 
-    public function __construct()
+    public function __construct($model)
     {
+        $this->model = $model;
+
         $this->db = Db::instance();
 
         $this->db->useDb('read');
@@ -26,6 +30,12 @@ class Query
     protected function getOptions()
     {
         return $this->options;
+    }
+
+    // 提供给model设置表名
+    public function setTable($table)
+    {
+        $this->table($table);
     }
 
     /********最终操作begin*************/
@@ -57,7 +67,16 @@ class Query
         $options = $this->parseExpress();
         $sql = $this->builder->select($options);
 
-        return $this->db->findOne($sql);
+        $result = $this->db->findOne($sql);
+
+        // 数据处理：将数组转换成对象
+        if ($result) {
+            if (!empty($this->model)) {
+                $result = $this->model->newInstance($result);   
+            }
+        }
+
+        return $result;
     }
 
     /*
@@ -68,7 +87,19 @@ class Query
         $options = $this->parseExpress();
         $sql = $this->builder->select($options);
 
-        return $this->db->findAll($sql);
+        $resultset = $this->db->findAll($sql);
+
+        $resultsetType = Config::get('resultset_type');
+        if ($resultsetType == 'collection') {
+            if (count($resultset) > 0) {
+                foreach ($resultset as $key => $result) {
+                    $result = $this->model->newInstance($result);
+                    $resultset[$key] = $result;
+                }
+            }       
+        }
+
+        return $resultset;
     }
 
     /********最终操作end*************/
@@ -121,7 +152,7 @@ class Query
     public function where($condition)
     {
         // 处理闭包
-        
+
         // 组装成以OR分隔的数组
         $this->options['where'] = $condition;
         return $this;   
@@ -129,7 +160,7 @@ class Query
 
     public function whereOr($condition)
     {
-       return $this; 
+        return $this; 
     }
 
     /********链式操作end*************/
